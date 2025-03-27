@@ -5,10 +5,11 @@
   const orderTableEle = document.getElementById("order-table");
   const orderTableBodyEle = document.querySelector("#order-table tbody");
 
-  const orderIdField = document.getElementById("order-id");
   const productIdField = document.getElementById("product-id");
   const quantityField = document.getElementById("quantity");
   const subtotalField = document.getElementById("subtotal");
+
+  const shippingCostField = document.getElementById("shippingCost");
   const shippingAddressField = document.getElementById("shippingAddress");
   const shippingZipField = document.getElementById("shippingZip");
 
@@ -46,11 +47,11 @@
 
       const row = document.createElement("tr");
 
-      row.appendChild(createCell(order.order_id));
       row.appendChild(createCell(order.product_id));
       row.appendChild(createCell(order.quantity));
       row.appendChild(createCell(order.subtotal));
       row.appendChild(createCell(order.shipping_address));
+      row.appendChild(createCell(order.shipping_cost));
       row.appendChild(createCell(order.shipping_zip));
       row.appendChild(createCell(order.total));
 
@@ -70,11 +71,12 @@
 
   function onSaveButton() {
     const data = {
-      order_id : parseFloat(orderIdField.value),
+      order_id: 0,
       product_id : parseFloat(productIdField.value),
       quantity : parseFloat(quantityField.value),
       subtotal : parseFloat(subtotalField.value),
       shipping_address : shippingAddressField.value,
+      shipping_cost : parseFloat(shippingCostField.value),
       shipping_zip : shippingZipField.value,
       total : 0.0,
     };
@@ -94,7 +96,7 @@
   }
 
   function updateOrderForm(json) {
-    alert("The order total for " + json.order_id + " has been updated to " + json.total);
+    alert("The order total for " + " has been updated to " + json.total);
     fetchOrders();
     document.getElementById("add-order-form").reset();
   }

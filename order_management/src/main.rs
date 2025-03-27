@@ -1,15 +1,16 @@
 #[macro_use]
 extern crate lazy_static;
 
-use std::net::SocketAddr;
-use std::result::Result;
-use std::convert::Infallible;
-use std::str;
 use hyper::service::{make_service_fn, service_fn};
-use hyper::{Body, Method, Request, Response, StatusCode, Server};
+use hyper::{Body, Method, Request, Response, Server, StatusCode};
 pub use mysql_async::prelude::*;
 pub use mysql_async::*;
+
 use serde::{Deserialize, Serialize};
+use std::convert::Infallible;
+use std::net::SocketAddr;
+use std::result::Result;
+use std::str;
 
 lazy_static! {
     static ref SALES_TAX_RATE_SERVICE: String = {
@@ -19,12 +20,11 @@ lazy_static! {
             "http://localhost:8001/find_rate".into()
         }
     };
-
     static ref DATABASE_URL: String = {
         if let Ok(url) = std::env::var("DATABASE_URL") {
             url
         } else {
-            "mysql://root:pass@127.0.0.1:3306/mysql".into()
+            "mysql://root:pass@127.0.0.1:3306/order_management".into()
         }
     };
 }
@@ -37,25 +37,28 @@ struct Order {
     subtotal: f32,
     shipping_address: String,
     shipping_zip: String,
+    shipping_cost: f32,
     total: f32,
 }
 
 impl Order {
     fn new(
-        order_id: i32,
+        order_id: Option<i32>,
         product_id: i32,
         quantity: i32,
         subtotal: f32,
         shipping_address: String,
         shipping_zip: String,
+        shipping_cost: f32,
         total: f32,
     ) -> Self {
         Self {
-            order_id,
+            order_id: order_id.unwrap_or_default(),
             product_id,
             quantity,
             subtotal,
             shipping_address,
+            shipping_cost,
             shipping_zip,
             total,
         }
@@ -78,8 +81,8 @@ async fn handle_request(req: Request<Body>, pool: Pool) -> Result<Response<Body>
 
         (&Method::GET, "/init") => {
             let mut conn = pool.get_conn().await.unwrap();
-            // "DROP TABLE IF EXISTS orders;".ignore(&mut conn).await?;
-            "CREATE TABLE IF NOT EXISTS orders (order_id INT, product_id INT, quantity INT, subtotal FLOAT, shipping_address VARCHAR(1024), shipping_zip VARCHAR(32), total FLOAT);".ignore(&mut conn).await?;
+
+            "CREATE TABLE IF NOT EXISTS orders (order_id INT PRIMARY KEY NOT NULL AUTO_INCREMENT, product_id INT, quantity INT, subtotal FLOAT, shipping_address VARCHAR(1024), shipping_zip VARCHAR(32), total FLOAT);".ignore(&mut conn).await?;
             drop(conn);
             Ok(response_build("{\"status\":true}"))
         }
@@ -90,25 +93,24 @@ async fn handle_request(req: Request<Body>, pool: Pool) -> Result<Response<Body>
             let mut order: Order = serde_json::from_slice(&byte_stream).unwrap();
 
             let client = reqwest::Client::new();
-            let rate_resp = client.post(&*SALES_TAX_RATE_SERVICE)
+            let rate_resp = client
+                .post(&*SALES_TAX_RATE_SERVICE)
                 .body(order.shipping_zip.clone())
                 .send()
                 .await?;
 
             if rate_resp.status().is_success() {
-                let rate = rate_resp.text()
-                    .await?
-                    .parse::<f32>()?;
-                order.total = order.subtotal * (1.0 + rate);
-                
-                "INSERT INTO orders (order_id, product_id, quantity, subtotal, shipping_address, shipping_zip, total) VALUES (:order_id, :product_id, :quantity, :subtotal, :shipping_address, :shipping_zip, :total)"
+                let rate = rate_resp.text().await?.parse::<f32>()?;
+                order.total = (order.subtotal + order.shipping_cost) * (1.0 + rate);
+
+                "INSERT INTO orders (product_id, quantity, subtotal, shipping_address, shipping_zip, shipping_cost, total) VALUES (:product_id, :quantity, :subtotal, :shipping_address, :shipping_zip, :shipping_cost, :total)"
                     .with(params! {
-                        "order_id" => order.order_id,
                         "product_id" => order.product_id,
                         "quantity" => order.quantity,
                         "subtotal" => order.subtotal,
                         "shipping_address" => &order.shipping_address,
                         "shipping_zip" => &order.shipping_zip,
+                        "shipping_cost" => order.shipping_cost,
                         "total" => order.total,
                     })
                     .ignore(&mut conn)
@@ -130,17 +132,31 @@ async fn handle_request(req: Request<Body>, pool: Pool) -> Result<Response<Body>
 
             let orders = "SELECT * FROM orders"
                 .with(())
-                .map(&mut conn, |(order_id, product_id, quantity, subtotal, shipping_address, shipping_zip, total)| {
-                    Order::new(
+                .map(
+                    &mut conn,
+                    |(
                         order_id,
                         product_id,
                         quantity,
                         subtotal,
                         shipping_address,
                         shipping_zip,
+                        shipping_cost,
                         total,
-                    )},
-                ).await?;
+                    )| {
+                        Order::new(
+                            order_id,
+                            product_id,
+                            quantity,
+                            subtotal,
+                            shipping_address,
+                            shipping_zip,
+                            shipping_cost,
+                            total,
+                        )
+                    },
+                )
+                .await?;
 
             drop(conn);
             Ok(response_build(serde_json::to_string(&orders)?.as_str()))
@@ -160,7 +176,10 @@ fn response_build(body: &str) -> Response<Body> {
     Response::builder()
         .header("Access-Control-Allow-Origin", "*")
         .header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        .header("Access-Control-Allow-Headers", "api,Keep-Alive,User-Agent,Content-Type")
+        .header(
+            "Access-Control-Allow-Headers",
+            "api,Keep-Alive,User-Agent,Content-Type",
+        )
         .body(Body::from(body.to_owned()))
         .unwrap()
 }
