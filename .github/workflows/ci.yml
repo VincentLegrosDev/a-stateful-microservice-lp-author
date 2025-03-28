@@ -57,7 +57,7 @@ jobs:
         run: | 
           sudo apt-get update
           sudo apt-get -y install mysql.server libmysqlclient-dev
-          service mysql start 
+          sudo service mysql start 
           mysql -e "SET GLOBAL max_allowed_packet = 36700160;" -uroot -proot
           mysql -e "SET @@GLOBAL.ENFORCE_GTID_CONSISTENCY = WARN;" -uroot -proot
           mysql -e "SET @@GLOBAL.ENFORCE_GTID_CONSISTENCY = ON;" -uroot -proot
