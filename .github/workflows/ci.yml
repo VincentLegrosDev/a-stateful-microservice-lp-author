@@ -72,7 +72,7 @@ jobs:
           echo $'\init database and order management service' 
           curl http://127.0.0.1:8003/init  
 
-      - name: test1 POST a order 
+      - name: test-1 POST a order 
         run: |
           sleep 15
           echo $'\nRunning test1 post a order'
@@ -84,7 +84,7 @@ jobs:
             exit 1
           fi
  
-      - name: test2 GET a order 
+      - name: test-2 GET a order 
         run: |
           sleep 15
           echo $'\nRunning test1 post a order'
