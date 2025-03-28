@@ -82,7 +82,7 @@ async fn handle_request(req: Request<Body>, pool: Pool) -> Result<Response<Body>
         (&Method::GET, "/init") => {
             let mut conn = pool.get_conn().await.unwrap();
 
-            "CREATE TABLE IF NOT EXISTS orders (order_id INT PRIMARY KEY NOT NULL AUTO_INCREMENT, product_id INT, quantity INT, subtotal FLOAT, shipping_address VARCHAR(1024), shipping_zip VARCHAR(32), total FLOAT);".ignore(&mut conn).await?;
+            "CREATE TABLE IF NOT EXISTS orders (order_id INT PRIMARY KEY NOT NULL AUTO_INCREMENT, product_id INT, quantity INT, subtotal FLOAT, shipping_address VARCHAR(1024), shipping_zip VARCHAR(32), shipping_cost FLOAT, total FLOAT);".ignore(&mut conn).await?;
             drop(conn);
             Ok(response_build("{\"status\":true}"))
         }
