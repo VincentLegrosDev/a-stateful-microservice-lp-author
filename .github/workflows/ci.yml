@@ -37,6 +37,19 @@ jobs:
           VERSION=0.13.0
           curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh | sudo bash -s -- --version=$VERSION -p /usr/local
 
+      - name: install Mariadb 
+        run: | 
+          sudo apt-get update
+          sudo apt-get -y install mysql.server libmysqlclient-dev
+          sudo service mysql start 
+          mysql -e "SET GLOBAL max_allowed_packet = 36700160;" -uroot -proot
+          mysql -e "SET @@GLOBAL.ENFORCE_GTID_CONSISTENCY = WARN;" -uroot -proot
+          mysql -e "SET @@GLOBAL.ENFORCE_GTID_CONSISTENCY = ON;" -uroot -proot
+          mysql -e "SET @@GLOBAL.GTID_MODE = OFF_PERMISSIVE;" -uroot -proot
+          mysql -e "SET @@GLOBAL.GTID_MODE = ON_PERMISSIVE;" -uroot -proot
+          mysql -e "SET @@GLOBAL.GTID_MODE = ON;" -uroot -proot
+          mysql -e "PURGE BINARY LOGS BEFORE now();" -uroot -proot
+
       - name: sales_tax_rate
         run: |
           cd sales_tax_rate
@@ -53,24 +66,17 @@ jobs:
           nohup wasmedge --env "SALES_TAX_RATE_SERVICE=http://127.0.0.1:8001/find_rate" --env "DATABASE_URL=mysql://root:root@127.0.0.1:3306/mysql" order_management.wasm &
           echo $! > order_management.pid
 
-      - name: install Mariadb 
-        run: | 
-          sudo apt-get update
-          sudo apt-get -y install mysql.server libmysqlclient-dev
-          sudo service mysql start 
-          mysql -e "SET GLOBAL max_allowed_packet = 36700160;" -uroot -proot
-          mysql -e "SET @@GLOBAL.ENFORCE_GTID_CONSISTENCY = WARN;" -uroot -proot
-          mysql -e "SET @@GLOBAL.ENFORCE_GTID_CONSISTENCY = ON;" -uroot -proot
-          mysql -e "SET @@GLOBAL.GTID_MODE = OFF_PERMISSIVE;" -uroot -proot
-          mysql -e "SET @@GLOBAL.GTID_MODE = ON_PERMISSIVE;" -uroot -proot
-          mysql -e "SET @@GLOBAL.GTID_MODE = ON;" -uroot -proot
-          mysql -e "PURGE BINARY LOGS BEFORE now();" -uroot -proot
-
       - name: Init the service 
         run: |
           sleep 15
           echo $'\init database and order management service' 
-          curl http://127.0.0.1:8003/init  
+          curl http://127.0.0.1:8003/init
+          IF [[ $resp= *'true'* ]]; THEN 
+            echo -e "Execution Success!" 
+          ELSE
+            echo -e "Execution Fail!"
+            exit 1
+          FI
 
       - name: test-1 POST a order 
         run: |
