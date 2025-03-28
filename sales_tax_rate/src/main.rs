@@ -1,4 +1,3 @@
-/home/vlegros/.zshenv:.:3: no such file or directory: /usr/local/env
 use csv::Reader;
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Method, Request, Response, Server, StatusCode};
