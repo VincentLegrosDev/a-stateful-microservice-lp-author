@@ -71,7 +71,7 @@ jobs:
           sleep 15
           echo $'\init database and order management service' 
           resp=$(curl http://127.0.0.1:8003/init)
-          IF [[ $resp= *'true'* ]]; THEN 
+          IF [[ $resp == *'true'* ]]; THEN 
             echo -e "Execution Success!" 
           ELSE
             echo -e "Execution Fail!"
