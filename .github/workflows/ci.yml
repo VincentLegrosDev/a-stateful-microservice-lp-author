@@ -72,12 +72,12 @@ jobs:
           echo $'\init database and order management service' 
           resp=$(curl http://127.0.0.1:8003/init)
           echo "$resp"
-          IF [[ $resp == *'true'* ]]; THEN 
+          if [[ $resp == *'true'* ]]; then
             echo -e "Execution Success!" 
-          ELSE
+          else
             echo -e "Execution Fail!"
             exit 1
-          FI
+          fi
 
       - name: test-1 POST a order 
         run: |
@@ -85,12 +85,12 @@ jobs:
           echo $'\nRunning test1 post a order'
           resp=$(curl http://127.0.0.1:8003/create_order -X POST -d @order.json)
           echo "$resp"
-          IF [[ $resp == *'{"order_id":0,"product_id":321,"quantity":2,"subtotal":20.0,"shipping_address":"123 Main St, Anytown USA","shipping_zip":"78701","shipping_cost":5.5,"total":27.15}'* ]]; then
+          if [[ $resp == *'{"order_id":0,"product_id":321,"quantity":2,"subtotal":20.0,"shipping_address":"123 Main St, Anytown USA","shipping_zip":"78701","shipping_cost":5.5,"total":27.15}'* ]]; then
             echo -e "Execution Success!"
-          ELSE
+          else
             echo -e "Execution Fail!"
             exit 1
-          FI
+          fi
  
       - name: test-2 GET a order 
         run: |
