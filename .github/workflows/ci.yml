@@ -8,7 +8,7 @@ on:
         required: true
         default: 'info'
   push:
-    branches: [ third deliverable ]
+    branches: [ main ]
   pull_request:
     branches: [ main ]
 
