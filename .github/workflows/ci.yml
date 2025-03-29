@@ -85,7 +85,7 @@ jobs:
           echo $'\nRunning test1 post a order'
           resp=$(curl http://127.0.0.1:8003/create_order -X POST -d @order.json)
           echo "$resp"
-          if [[ $resp == *'total":27.15'* ]]; then 
+          if [[ $resp == *'"total": 27.15'* ]]; then 
             echo -e "Execution Success!"
           else
             echo -e "Execution Fail!"
@@ -98,7 +98,7 @@ jobs:
           echo $'\nRunning test2 fetch orders'
           resp=$(curl http://127.0.0.1:8003/orders)
           echo "$resp"
-          if [[ $resp == *'"total":27.15'* ]]; then
+          if [[ $resp == *'"total": 27.15'* ]]; then
             echo -e "Execution Success!"
           else
             echo -e "Execution Fail!"
