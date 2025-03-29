@@ -101,7 +101,7 @@ async fn handle_request(req: Request<Body>, pool: Pool) -> Result<Response<Body>
 
             if rate_resp.status().is_success() {
                 let rate = rate_resp.text().await?.parse::<f32>()?;
-                order.total = (order.subtotal + order.shipping_cost) * (1.0 + rate);
+                order.total = (order.subtotal * (1.0 + rate)) + order.shipping_cost;
 
                 "INSERT INTO orders (product_id, quantity, subtotal, shipping_address, shipping_zip, shipping_cost, total) VALUES (:product_id, :quantity, :subtotal, :shipping_address, :shipping_zip, :shipping_cost, :total)"
                     .with(params! {
